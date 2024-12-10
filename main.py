@@ -159,6 +159,9 @@ def check_game_end(game):
     elif len(impostors) >= len(crewmates):
         game['game_end'] = True
         game['impostors_win'] = True
+    elif game['completed_tasks'] >= game['total_tasks']:
+        game['game_end'] = True
+        game['impostors_win'] = False
 
 @app.route('/join', methods=['GET', 'POST'])
 def join_game():
@@ -203,6 +206,7 @@ def complete_task():
         player['tasks']['completed_tasks'].append(task_number)
         game = games[game_id]
         game['completed_tasks'] = sum(len(player['tasks']['completed_tasks']) for player in players.values() if player['alive'] and player['role'] == 'crewmate')
+        check_game_end(game)
     return redirect(url_for('player_game'))
 
 @app.route('/report_body')
