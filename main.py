@@ -5,6 +5,7 @@ import uuid
 import threading
 import time
 import datetime
+import random
 
 app = Flask(__name__)
 app.secret_key = 'haslo'
@@ -90,14 +91,16 @@ def start_game(game_id):
         return 'Game not found.', 404
 
 def assign_tasks(game):
-    for player in game['players']:
+    task_pool = list(range(1, 21))
+    for player_id in game['players']:
         player_task = {'tasks': [], 'completed_tasks': []}
+        
         total_tasks = game['short_tasks'] + game['long_tasks']
-        tasks_numbers = list(range(1, 21))
-        for _ in range(total_tasks):
-            task_number = tasks_numbers.pop()
-            player_task['tasks'].append(task_number)
-        players[player]['tasks'] = player_task
+        if total_tasks > len(task_pool):
+            total_tasks = len(task_pool)
+        
+        player_task['tasks'] = random.sample(task_pool, total_tasks)
+        players[player_id]['tasks'] = player_task
 
 def sabotage_timeout(game):
     game['sabotage'] = False
@@ -320,4 +323,4 @@ def eliminate():
         return 'Cannot eliminate this player.', 403
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=8080, host='0.0.0.0')
