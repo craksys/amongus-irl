@@ -48,7 +48,7 @@ def admin_dashboard():
     if request.method == 'POST':
         short_tasks = int(request.form['short_tasks'])
         long_tasks = int(request.form['long_tasks'])
-        game_id = str(uuid.uuid4())
+        game_id = str(uuid.uuid4())[:5]
         games[game_id] = {
             'short_tasks': short_tasks,
             'long_tasks': long_tasks,
