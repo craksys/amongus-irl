@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Start a New Game</h1>
+    <form method="POST" action="/admin/dashboard">
+        <label for="short_tasks">Number of Short Tasks:</label>
+        <input type="number" name="short_tasks" id="short_tasks" min="0" required><br><br>
+        <label for="long_tasks">Number of Long Tasks:</label>
+        <input type="number" name="long_tasks" id="long_tasks" min="0" required><br><br>
+        <input type="submit" value="Create Game">
+    </form>
+</body>
+</html>

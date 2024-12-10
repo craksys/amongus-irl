@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Game Control</title>
+</head>
+<body>
+    <h1>Game Control Panel</h1>
+    <p>Game ID: {{ game_id }}</p>
+    {% if not game.started %}
+        <p>The game has not started yet.</p>
+        <a href="{{ url_for('start_game', game_id=game_id) }}">Start Game</a>
+    {% else %}
+        <p>The game has started.</p>
+    {% endif %}
+    <h2>Players Joined:</h2>
+    <ul>
+    {% for player_id in game.players %}
+        <li>{{ players[player_id]['name'] }}</li>
+    {% endfor %}
+    </ul>
+    <p>Share this link with players to join: <a href="{{ request.url_root }}join">{{ request.url_root }}join</a></p>
+</body>
+</html>

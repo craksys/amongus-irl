@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game - {{ player['name'] }}</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Welcome, {{ player['name'] }}</h1>
+    {% if not game['started'] %}
+        <p>Waiting for the game to start...</p>
+    {% else %}
+        {% if not player['alive'] %}
+            <p>You have been eliminated.</p>
+        {% else %}
+            <h2>Your Role: {{ player['role'].capitalize() }}</h2>
+            {% if player['tasks'] %}
+                <h3>Your Tasks:</h3>
+                <ul>
+                {% for task in player['tasks']['tasks'] %}
+                    <li>
+                        {% if task in player['tasks']['completed_tasks'] %}
+                            <s>Task {{ task }}</s>
+                        {% else %}
+                            Task {{ task }}
+                            <form method="POST" action="/complete_task" style="display:inline;">
+                                <input type="hidden" name="task_number" value="{{ task }}">
+                                <input type="submit" value="Mark as Completed">
+                            </form>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            <h3>Actions:</h3>
+            <ul>
+                <li><a href="{{ url_for('report_body') }}">Report Body</a></li>
+                <li><a href="{{ url_for('emergency_meeting') }}">Call Emergency Meeting</a></li>
+                {% if player['role'] == 'impostor' %}
+                    <li><a href="{{ url_for('sabotage') }}">Sabotage</a></li>
+                    <form method="POST" action="/eliminate">
+                        <label for="target_id">Eliminate Player:</label>
+                        <select name="target_id" id="target_id">
+                        {% for p_id in game['players'] %}
+                            {% if p_id != player_id and players[p_id]['alive'] %}
+                                <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
+                            {% endif %}
+                        {% endfor %}
+                        </select>
+                        <input type="submit" value="Eliminate">
+                    </form>
+                {% endif %}
+                {% if game['game_end'] %}
+                {% if game['impostors_win'] %}
+                    <h2>Impostorzy wygrywają!</h2>
+                {% else %}
+                    <h2>Crewmates wygrywają!</h2>
+                {% endif %}
+            {% else %}
+                    {% if game['sabotage'] %}
+                    <h3>Sabotaż aktywny! Napraw go.</h3>
+                    <p>Pozostały czas: <span id="sabotage_timer"></span></p>
+                    <p>Postęp naprawy: {{ game['repair_attempts']|length }}/2</p>
+                    {% if player_id not in game['repair_attempts'] and player['alive'] %}
+                        <a href="{{ url_for('repair') }}">Napraw Sabotaż</a>
+                    {% else %}
+                        <p>Oczekiwanie na innych graczy...</p>
+                    {% endif %}
+                    {% endif %}
+                {% endif %}
+            </ul>
+            {% if game.get('voting') %}
+                <h3>Głosowanie!</h3>
+                <h3>Głosowanie w toku!</h3>
+                <p>{{ game['reports'][-1] }}</p>
+                <p>Pozostały czas: <span id="voting_timer"></span></p>
+                <p>{{ game['reports'][-1] }}</p>
+                <form method="POST" action="/vote">
+                    <label for="vote_for">Głosuj na:</label>
+                    <select name="vote_for" id="vote_for">
+                        <option value="skip">Pomiń głosowanie</option>
+                        {% for p_id in game['players'] %}
+                            {% if players[p_id]['alive'] %}
+                                <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <input type="submit" value="Głosuj">
+                </form>
+            {% endif %}
+        {% endif %}
+    {% endif %}
+    <script>
+        var refreshInterval = setInterval(function(){
+            location.reload();
+        }, 5000);
+    </script>
+    {% if game.get('show_voting_result') %}
+    <h3>Wynik głosowania</h3>
+    <p>{{ game['voting_result'] }}</p>
+    <!-- Zatrzymujemy auto-odświeżanie -->
+    <script>
+        clearInterval(refreshInterval);
+        // Po 5 sekundach przeładuj stronę, aby kontynuować grę
+        setTimeout(function() {
+            location.reload();
+        }, 5000);
+    </script>
+
+
+{% endif %}
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+{% endwith %}
+</body>
+<script>
+    {% if game['voting'] %}
+        var votingEndTime = new Date("{{ game['voting_end_time'] }}Z");
+        function updateVotingTimer() {
+            var now = new Date();
+            var timeLeft = votingEndTime - now;
+            if (timeLeft > 0) {
+                var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                document.getElementById('voting_timer').innerHTML = seconds + "s";
+            } else {
+                document.getElementById('voting_timer').innerHTML = "Koniec czasu!";
+            }
+        }
+        setInterval(updateVotingTimer, 500);
+    {% endif %}
+
+    {% if game['sabotage'] %}
+        var sabotageEndTime = new Date("{{ game['sabotage_end_time'] }}Z");
+        function updateSabotageTimer() {
+            var now = new Date();
+            var timeLeft = sabotageEndTime - now;
+            if (timeLeft > 0) {
+                var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                document.getElementById('sabotage_timer').innerHTML = seconds + "s";
+            } else {
+                document.getElementById('sabotage_timer').innerHTML = "Koniec czasu!";
+            }
+        }
+        setInterval(updateSabotageTimer, 500);
+    {% endif %}
+</script>
+</html>

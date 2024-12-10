@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Join Game</title>
+</head>
+<body>
+    <h1>Join a Game</h1>
+    <form method="POST" action="/join">
+        <label for="game_id">Game ID:</label>
+        <input type="text" name="game_id" id="game_id" required><br><br>
+        <label for="player_name">Player Name:</label>
+        <input type="text" name="player_name" id="player_name" required><br><br>
+        <input type="submit" value="Join Game">
+    </form>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+</body>
+</html>
