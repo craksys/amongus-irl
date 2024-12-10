@@ -84,23 +84,32 @@ def start_game(game_id):
     game = games.get(game_id)
     if game:
         game['started'] = True
-        assign_tasks(game)
         assign_impostor(game)
+        assign_tasks(game)
         return redirect(url_for('admin_game', game_id=game_id))
     else:
         return 'Game not found.', 404
 
 def assign_tasks(game):
     task_pool = list(range(1, 21))
+    total_tasks = game['short_tasks'] + game['long_tasks']
+    total_tasks_crewmates = 0
+    total_player_tasks = len(task_pool)
+
     for player_id in game['players']:
         player_task = {'tasks': [], 'completed_tasks': []}
-        
-        total_tasks = game['short_tasks'] + game['long_tasks']
-        if total_tasks > len(task_pool):
-            total_tasks = len(task_pool)
+        if total_tasks > total_player_tasks:
+            total_tasks = total_player_tasks
         
         player_task['tasks'] = random.sample(task_pool, total_tasks)
         players[player_id]['tasks'] = player_task
+
+        print(f"Assigning tasks to player {player_id} with role {players[player_id]['role']}")
+        if players[player_id]['role'] == 'crewmate':
+            total_tasks_crewmates += len(player_task['tasks'])
+
+    game['total_tasks'] = total_tasks_crewmates
+    game['completed_tasks'] = sum(len(player['tasks']['completed_tasks']) for player in players.values() if player['alive'] and player['role'] == 'crewmate')
 
 def sabotage_timeout(game):
     game['sabotage'] = False
@@ -192,7 +201,8 @@ def complete_task():
     player = players[player_id]
     if task_number in player['tasks']['tasks']:
         player['tasks']['completed_tasks'].append(task_number)
-        # Check for game end condition
+        game = games[game_id]
+        game['completed_tasks'] = sum(len(player['tasks']['completed_tasks']) for player in players.values() if player['alive'] and player['role'] == 'crewmate')
     return redirect(url_for('player_game'))
 
 @app.route('/report_body')

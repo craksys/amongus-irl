@@ -13,6 +13,8 @@
             <p>You have been eliminated.</p>
         {% else %}
             <h2>Your Role: {{ player['role'].capitalize() }}</h2>
+            <p>Progress: {{ game['completed_tasks'] }}/{{ game['total_tasks'] }}</p>
+            <progress value="{{ game['completed_tasks'] }}" max="{{ game['total_tasks'] }}"></progress>
             {% if player['tasks'] %}
                 <h3>Your Tasks:</h3>
                 <ul>
