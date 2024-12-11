@@ -51,6 +51,7 @@ def admin_dashboard():
         short_tasks = int(request.form['short_tasks'])
         long_tasks = int(request.form['long_tasks'])
         impostor_kill_cooldown = int(request.form['impostor_kill_cooldown'])
+        set_emergency_cooldown = int(request.form['set_emergency_cooldown'])
         game_id = str(uuid.uuid4())[:5]
         games[game_id] = {
             'short_tasks': short_tasks,
@@ -72,6 +73,8 @@ def admin_dashboard():
             'total_tasks' : None,
             'completed_tasks' : None,
             'sound_played' : False,
+            'set_emergency_cooldown': set_emergency_cooldown,
+            'emergency_meeting_cooldown_end': None,
         }
         session['game_id'] = game_id
         return redirect(url_for('admin_game', game_id=game_id))
@@ -253,6 +256,16 @@ def report_body():
 def emergency_meeting():
     game_id = session['game_id']
     game = games[game_id]
+
+    current_time = datetime.datetime.utcnow()
+    cooldown_end = game.get('emergency_meeting_cooldown_end')
+    print(f"Current time: {current_time}, Cooldown ends: {cooldown_end}")
+    
+    
+    if game['emergency_meeting_cooldown_end'] and current_time < game['emergency_meeting_cooldown_end']:
+        flash("Emergency meeting is on cooldown. Please wait.")
+        return redirect(url_for('player_game'))
+    
     game['reports'].append('Emergency meeting called by {}'.format(players[session['player_id']]['name']))
     start_voting(game)
     return redirect(url_for('player_game'))
@@ -342,6 +355,8 @@ def process_votes(game):
     game['impostor_kill_timer'] = game['impostor_kill_cooldown']
     threading.Thread(target=update_cooldown_timer, args=(game,)).start()
     
+    game['emergency_meeting_cooldown_end'] = datetime.datetime.utcnow() + datetime.timedelta(seconds=game['set_emergency_cooldown'] )
+
     game['votes'] = {}  # Reset votes
     game['voted_players'] = []  # Reset voted players list
     check_game_end(game)
