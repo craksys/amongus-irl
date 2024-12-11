@@ -68,7 +68,9 @@ def admin_dashboard():
             'sabotage_end_time': None,
             'game_end': False,
             'impostor_kill_cooldown': impostor_kill_cooldown,
-            'impostor_kill_timer': None
+            'impostor_kill_timer': None,
+            'total_tasks' : None,
+            'completed_tasks' : None,
         }
         session['game_id'] = game_id
         return redirect(url_for('admin_game', game_id=game_id))
@@ -94,13 +96,36 @@ def start_game(game_id):
         return redirect(url_for('admin_game', game_id=game_id))
     else:
         return 'Game not found.', 404
+    
+@app.route('/reset_game/<game_id>', methods=['POST'])
+@admin_login_required
+def reset_game(game_id):
+    game = games.get(game_id)
+    if game:
+        # Upewnij się, że gra istnieje
+        game['completed_tasks'] = 0  # Reset liczby ukończonych zadań
+        game['started'] = False  # Zatrzymaj aktualną grę
+
+        impostor_id = game['impostor']
+        impostor = players[impostor_id]
+        impostor['role'] = 'crewmate'
+        for player_id in game['players']:
+            player = players[player_id]
+            player['alive'] = True
+        game['impostor'] = None
+        game['impostors_win']= False,
+        game['sabotage_end_time']= None
+        game['game_end']= False
+        return start_game(game_id)
+    else:
+        return 'Game not found.', 404
 
 def assign_tasks(game):
     task_pool = list(range(1, 21))
     total_tasks = game['short_tasks'] + game['long_tasks']
     total_tasks_crewmates = 0
     total_player_tasks = len(task_pool)
-
+    game['completed_tasks'] = 0
     for player_id in game['players']:
         player_task = {'tasks': [], 'completed_tasks': []}
         if total_tasks > total_player_tasks:
