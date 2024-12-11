@@ -19,5 +19,8 @@
     {% endfor %}
     </ul>
     <p>Share this link with players to join: <a href="{{ request.url_root }}join">{{ request.url_root }}join</a></p>
+    <form action="{{ url_for('reset_game', game_id=game_id) }}" method="post">
+        <button type="submit" class="btn btn-danger">Resetuj grę</button>
+    </form>    
 </body>
 </html>
