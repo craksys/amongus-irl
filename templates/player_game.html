@@ -38,7 +38,7 @@
             <ul>
                 <li><a href="{{ url_for('report_body') }}">Report Body</a></li>
                 <li><a href="{{ url_for('emergency_meeting') }}">Call Emergency Meeting</a></li>
-                {% if player['role'] == 'impostor' %}
+                {% if player['role'] == 'impostor' and not game.get('voting') %}
                     <li><a href="{{ url_for('sabotage') }}">Sabotage</a></li>
                     <form method="POST" action="/eliminate">
                         <label for="target_id">Eliminate Player:</label>
