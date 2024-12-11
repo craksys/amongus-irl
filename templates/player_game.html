@@ -48,7 +48,11 @@
                             {% endif %}
                         {% endfor %}
                         </select>
-                        <input type="submit" value="Eliminate">
+                        {% if game['impostor_kill_timer'] %}
+                            <p>Kill cooldown active: {{ game['impostor_kill_timer'] }} seconds remaining.</p>
+                        {% else %}
+                            <input type="submit" value="Eliminate">
+                        {% endif %}
                     </form>
                 {% endif %}
                 {% if game['game_end'] %}
