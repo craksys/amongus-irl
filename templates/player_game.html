@@ -167,6 +167,108 @@
             setInterval(updateSabotageTimer, 500);
         {% endif %}
     </script>
+    <script>
+    // Flags to track if sound has been played
+    var soundPlayed = {
+        voting: false,
+        sabotage: false
+    };
+
+    // Function to update game state and play sounds
+    function updateGameState() {
+        // Check if voting is in progress
+        {% if game['voting'] %}
+            if (!soundPlayed.voting) {
+                {% if game['reports'][-1].startswith('Body reported') %}
+                    document.getElementById('report-sound').play();
+                {% else %}
+                    document.getElementById('emergency-sound').play();
+                {% endif %}
+                soundPlayed.voting = true;
+            }
+        {% else %}
+            soundPlayed.voting = false;
+        {% endif %}
+
+        // Check if sabotage is active
+        {% if game['sabotage'] %}
+            if (!soundPlayed.sabotage) {
+                document.getElementById('sabotage-sound').play();
+                soundPlayed.sabotage = true;
+            }
+        {% else %}
+            if (soundPlayed.sabotage) {
+                document.getElementById('sabotage-sound').pause();
+                document.getElementById('sabotage-sound').currentTime = 0;
+                soundPlayed.sabotage = false;
+            }
+        {% endif %}
+    }
+
+    // Call updateGameState on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateGameState();
+    });
+
+    // If you use AJAX or WebSockets to update game state, call updateGameState() after each update
+</script>
+
+<!-- Add this script at the end of the <body> -->
+<script>
+    // Initialize soundPlayed flags in localStorage if not already set
+    if (localStorage.getItem('soundPlayed_voting') === null) {
+        localStorage.setItem('soundPlayed_voting', 'false');
+    }
+    if (localStorage.getItem('soundPlayed_sabotage') === null) {
+        localStorage.setItem('soundPlayed_sabotage', 'false');
+    }
+
+    // Function to update game state and play sounds
+    function updateGameState() {
+        // Get audio elements
+        var emergencySound = document.getElementById('emergency-sound');
+        var reportSound = document.getElementById('report-sound');
+        var sabotageSound = document.getElementById('sabotage-sound');
+
+        // Handle voting sound playback
+        {% if game['voting'] %}
+            if (localStorage.getItem('soundPlayed_voting') === 'false') {
+                {% if game['reports'][-1].startswith('Body reported') %}
+                    reportSound.play();
+                {% else %}
+                    emergencySound.play();
+                {% endif %}
+                localStorage.setItem('soundPlayed_voting', 'true');
+            }
+        {% else %}
+            if (localStorage.getItem('soundPlayed_voting') === 'true') {
+                localStorage.setItem('soundPlayed_voting', 'false');
+            }
+        {% endif %}
+
+        // Handle sabotage sound playback
+        {% if game['sabotage'] %}
+            if (localStorage.getItem('soundPlayed_sabotage') === 'false') {
+                sabotageSound.play();
+                localStorage.setItem('soundPlayed_sabotage', 'true');
+            }
+        {% else %}
+            if (localStorage.getItem('soundPlayed_sabotage') === 'true') {
+                sabotageSound.pause();
+                sabotageSound.currentTime = 0;
+                localStorage.setItem('soundPlayed_sabotage', 'false');
+            }
+        {% endif %}
+    }
+
+    // Call updateGameState on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateGameState();
+    });
+
+    // Optional: If the game state updates dynamically without page reloads,
+    // ensure updateGameState() is called whenever the game state changes.
+</script>
 
     {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -177,5 +279,10 @@
             </ul>
         {% endif %}
     {% endwith %}
+
+<!-- music tags (keep inside body!!!!!!!!!!)-->
+<audio id="emergency-sound" src="{{ url_for('static', filename='sounds/emergency_meeting.mp3') }}"></audio>
+<audio id="report-sound" src="{{ url_for('static', filename='sounds/report_body.mp3') }}"></audio>
+<audio id="sabotage-sound" src="{{ url_for('static', filename='sounds/sabotage.mp3') }}" loop></audio>
 </body>
 </html>

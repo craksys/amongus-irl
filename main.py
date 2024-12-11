@@ -71,6 +71,7 @@ def admin_dashboard():
             'impostor_kill_timer': None,
             'total_tasks' : None,
             'completed_tasks' : None,
+            'sound_played' : False,
         }
         session['game_id'] = game_id
         return redirect(url_for('admin_game', game_id=game_id))
@@ -165,20 +166,6 @@ def update_cooldown_timer(game):
         game['impostor_kill_timer'] -= 1
     game['impostor_kill_timer'] = None
 
-def voting_timer(game):
-    elapsed_time = 0
-    while game['voting'] and elapsed_time < 30:
-        time.sleep(1)
-        elapsed_time += 1
-    if game['voting']:
-        game['voting'] = False
-        game['voting_end_time'] = None
-        process_votes(game)
-        game['show_voting_result'] = True
-        time.sleep(5)
-        game['show_voting_result'] = False
-    check_game_end(game)
-
 def hide_voting_result(game):
     time.sleep(5)
     game['show_voting_result'] = False
@@ -272,45 +259,21 @@ def emergency_meeting():
 
 def start_voting(game):
     game['voting'] = True
-    game['votes'] = {}  # Resetujemy głosy
-    game['voted_players'] = []  # Lista graczy, którzy już zagłosowali
-    # Ustawiamy czas zakończenia głosowania
+    game['votes'] = {}  # Reset votes
+    game['voted_players'] = []  # Reset voted players list
     game['voting_end_time'] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=30)).isoformat()
     threading.Thread(target=voting_timer, args=(game,)).start()
-
-def voting_timer(game):
-    time.sleep(30)  # Głosowanie trwa 30 sekund
-    game['voting'] = False
-    game['voting_end_time'] = None
-    # Przetwarzanie głosów
-    votes = game['votes']
-    vote_counts = {}
-    for vote in votes.values():
-        if vote not in vote_counts:
-            vote_counts[vote] = 0
-        vote_counts[vote] += 1
     
-    if vote_counts:
-        max_votes = max(vote_counts.values())
-        candidates = [k for k, v in vote_counts.items() if v == max_votes]
-        if 'skip' in candidates or len(candidates) > 1:
-            # Remis lub najwięcej głosów ma "skip" - nikt nie zostaje wyeliminowany
-            game['voting_result'] = "Nikt nie został wyeliminowany."
-        else:
-            # Eliminujemy gracza z największą liczbą głosów
-            eliminated_player_id = candidates[0]
-            if eliminated_player_id in players:
-                players[eliminated_player_id]['alive'] = False
-                game['reports'].append('Gracz {} został wyrzucony.'.format(players[eliminated_player_id]['name']))
-                game['voting_result'] = 'Gracz {} został wyrzucony.'.format(players[eliminated_player_id]['name'])
-    else:
-        game['voting_result'] = "Nikt nie oddał głosu."
-    # Wyświetlamy wynik głosowania przez 5 sekund
-    game['show_voting_result'] = True
-    time.sleep(5)
-    game['show_voting_result'] = False
-    # Sprawdzamy warunki końca gry
-    check_game_end(game)
+def voting_timer(game):
+    time.sleep(30)  # Voting lasts for 30 seconds
+    if game['voting']:
+        game['voting'] = False
+        game['voting_end_time'] = None
+        process_votes(game)
+        game['show_voting_result'] = True
+        time.sleep(5)
+        game['show_voting_result'] = False
+        check_game_end(game)
 
 @app.route('/vote', methods=['POST'])
 @player_required
@@ -319,14 +282,28 @@ def vote():
     game_id = session['game_id']
     game = games[game_id]
     player_id = session['player_id']
+
+    # Check if the player is alive
+    if not players[player_id]['alive']:
+        flash("You are eliminated and cannot vote.")
+        return redirect(url_for('player_game'))
+
     if game['voting']:
         if player_id not in game['voted_players']:
             game['votes'][player_id] = vote_for
             game['voted_players'].append(player_id)
-            # Check if all alive players have voted
+
+            # Get lists of alive players and alive players who have voted
             alive_players = [p_id for p_id in game['players'] if players[p_id]['alive']]
-            if len(game['voted_players']) >= len(alive_players):
-                # All votes are in; end voting early
+            voted_alive_players = [p_id for p_id in game['voted_players'] if players[p_id]['alive']]
+
+            # Debugging statements
+            print(f"Total alive players: {len(alive_players)}")
+            print(f"Alive players who have voted: {len(voted_alive_players)}")
+            print(f"Voted players list: {game['voted_players']}")
+
+            if len(voted_alive_players) >= len(alive_players):
+                # All alive players have voted; end voting early
                 game['voting'] = False
                 game['voting_end_time'] = None
                 process_votes(game)
@@ -334,29 +311,36 @@ def vote():
                 game['show_voting_result'] = True
                 Thread(target=hide_voting_result, args=(game,)).start()
         else:
-            flash("Już oddałeś swój głos.")
+            flash("You have already voted.")
+    else:
+        flash("Voting is not currently active.")
     return redirect(url_for('player_game'))
 
 def process_votes(game):
+    print("Processing votes...")
     votes = game['votes']
     vote_counts = {}
     for vote in votes.values():
         if vote not in vote_counts:
             vote_counts[vote] = 0
         vote_counts[vote] += 1
+
     if vote_counts:
         max_votes = max(vote_counts.values())
         candidates = [k for k, v in vote_counts.items() if v == max_votes]
         if 'skip' in candidates or len(candidates) > 1:
-            game['voting_result'] = "Nikt nie został wyeliminowany."
+            game['voting_result'] = "No one was eliminated."
         else:
             eliminated_player_id = candidates[0]
             if eliminated_player_id in players:
                 players[eliminated_player_id]['alive'] = False
-                game['reports'].append('Gracz {} został wyrzucony.'.format(players[eliminated_player_id]['name']))
-                game['voting_result'] = 'Gracz {} został wyrzucony.'.format(players[eliminated_player_id]['name'])
+                game['reports'].append('Player {} was ejected.'.format(players[eliminated_player_id]['name']))
+                game['voting_result'] = 'Player {} was ejected.'.format(players[eliminated_player_id]['name'])
     else:
-        game['voting_result'] = "Nikt nie oddał głosu."
+        game['voting_result'] = "No votes were cast."
+
+    game['votes'] = {}  # Reset votes
+    game['voted_players'] = []  # Reset voted players list
     check_game_end(game)
 
 @app.route('/sabotage')
