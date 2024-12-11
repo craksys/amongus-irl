@@ -2,46 +2,55 @@
 <html>
 <head>
     <title>Game - {{ player['name'] }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Include Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha384-P4F3IF3aYp+mXZO5waqYFfyMVhXQFdn1oXcjoqGvWrGyk5Y9XM9BWuxCWkvvZpMj" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body>
+<body class="{{ session.get('theme', 'light') }}">
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle">Switch Theme</button>
+
     <h1>Welcome, {{ player['name'] }}</h1>
+
     {% if not game['started'] %}
         <p>Waiting for the game to start...</p>
     {% else %}
         {% if not player['alive'] %}
-            <p style="color:red;"><strong><big>You have been eliminated.</big></strong></p>
+            <p class="eliminated"><strong>You have been eliminated.</strong></p>
         {% endif %}
-            <h2>Your Role: {{ player['role'].capitalize() }}</h2>
-            <p>Progress: {{ game['completed_tasks'] }}/{{ game['total_tasks'] }}</p>
-            <progress value="{{ game['completed_tasks'] }}" max="{{ game['total_tasks'] }}"></progress>
-            {% if player['tasks'] %}
-                <h3>Your Tasks:</h3>
-                <ul>
-                {% for task in player['tasks']['tasks'] %}
-                    <li>
-                        {% if task in player['tasks']['completed_tasks'] %}
-                            <s>Task {{ task }}</s>
-                        {% else %}
-                            Task {{ task }}
-                            <form method="POST" action="/complete_task" style="display:inline;">
-                                <input type="hidden" name="task_number" value="{{ task }}">
-                                <input type="submit" value="Mark as Completed">
-                            </form>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-                </ul>
-            {% endif %}
-            {% if player['alive'] %}
+        <h2>Your Role: {{ player['role'].capitalize() }}</h2>
+        <p>Progress: {{ game['completed_tasks'] }}/{{ game['total_tasks'] }}</p>
+        <progress value="{{ game['completed_tasks'] }}" max="{{ game['total_tasks'] }}"></progress>
+
+        {% if player['tasks'] %}
+            <h3>Your Tasks:</h3>
+            <ul>
+            {% for task in player['tasks']['tasks'] %}
+                <li>
+                    {% if task in player['tasks']['completed_tasks'] %}
+                        <s>Task {{ task }}</s>
+                    {% else %}
+                        Task {{ task }}
+                        <form method="POST" action="/complete_task" style="display:inline;">
+                            <input type="hidden" name="task_number" value="{{ task }}">
+                            <button type="submit"><i class="fas fa-check"></i> Complete</button>
+                        </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if player['alive'] %}
             <h3>Actions:</h3>
             <ul>
-                <li><a href="{{ url_for('report_body') }}">Report Body</a></li>
-                <li><a href="{{ url_for('emergency_meeting') }}">Call Emergency Meeting</a></li>
+                <li><a href="{{ url_for('report_body') }}"><i class="fas fa-bullhorn"></i> Report Body</a></li>
+                <li><a href="{{ url_for('emergency_meeting') }}"><i class="fas fa-bell"></i> Call Emergency Meeting</a></li>
                 {% if player['role'] == 'impostor' and not game.get('voting') %}
-                    <li><a href="{{ url_for('sabotage') }}">Sabotage</a></li>
+                    <li><a href="{{ url_for('sabotage') }}"><i class="fas fa-exclamation-triangle"></i> Sabotage</a></li>
                     <form method="POST" action="/eliminate">
-                        <label for="target_id">Eliminate Player:</label>
+                        <label for="target_id"><i class="fas fa-user-slash"></i> Eliminate Player:</label>
                         <select name="target_id" id="target_id">
                         {% for p_id in game['players'] %}
                             {% if p_id != player_id and players[p_id]['alive'] %}
@@ -52,113 +61,120 @@
                         {% if game['impostor_kill_timer'] %}
                             <p>Kill cooldown active: {{ game['impostor_kill_timer'] }} seconds remaining.</p>
                         {% else %}
-                            <input type="submit" value="Eliminate">
+                            <button type="submit"><i class="fas fa-user-slash"></i> Eliminate</button>
                         {% endif %}
                     </form>
                 {% endif %}
-            {% endif %}
-                {% if game['game_end'] %}
-                {% if game['impostors_win'] %}
-                    <h2>Impostorzy wygrywają!</h2>
-                {% else %}
-                    <h2>Crewmates wygrywają!</h2>
-                {% endif %}
-            {% else %}
-                    {% if game['sabotage'] %}
-                    <h3>Sabotaż aktywny! Napraw go.</h3>
-                    <p>Pozostały czas: <span id="sabotage_timer"></span></p>
-                    <p>Postęp naprawy: {{ game['repair_attempts']|length }}/2</p>
-                    {% if player_id not in game['repair_attempts'] and player['alive'] %}
-                        <a href="{{ url_for('repair') }}">Napraw Sabotaż</a>
-                    {% else %}
-                        <p>Oczekiwanie na innych graczy...</p>
-                    {% endif %}
-                    {% endif %}
-                {% endif %}
             </ul>
-            {% if game.get('voting') %}
-                <h3>Głosowanie w toku!</h3>
-                <p>{{ game['reports'][-1] }}</p>
-                <p>Pozostały czas: <span id="voting_timer"></span></p>
-                <p>Głosy: {{ game['voted_players']|length }}/{{ alive_players_count }}</p>
-                {% if player['alive'] %}
-                    {% if player_id not in game['voted_players'] %}
-                        <form method="POST" action="/vote">
-                            <label for="vote_for">Głosuj na:</label>
-                            <select name="vote_for" id="vote_for">
-                                <option value="skip">Pomiń głosowanie</option>
-                                {% for p_id in game['players'] %}
-                                    {% if players[p_id]['alive'] %}
-                                        <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
-                                    {% endif %}
-                                {% endfor %}
-                            </select>
-                            <input type="submit" value="Głosuj">
-                        </form>
-                    {% else %}
-                        <p>Już oddałeś swój głos.</p>
-                    {% endif %}
+        {% endif %}
+
+        {% if game['game_end'] %}
+            {% if game['impostors_win'] %}
+                <h2 class="impostors-win">Impostors Win!</h2>
+            {% else %}
+                <h2 class="crewmates-win">Crewmates Win!</h2>
+            {% endif %}
+        {% else %}
+            {% if game['sabotage'] %}
+                <h3>Sabotage Active! Fix it.</h3>
+                <p>Time Remaining: <span id="sabotage_timer"></span></p>
+                <p>Repair Progress: {{ game['repair_attempts']|length }}/2</p>
+                {% if player_id not in game['repair_attempts'] and player['alive'] %}
+                    <a href="{{ url_for('repair') }}"><i class="fas fa-tools"></i> Repair Sabotage</a>
+                {% else %}
+                    <p>Waiting for other players...</p>
                 {% endif %}
             {% endif %}
+        {% endif %}
+
+        {% if game.get('voting') %}
+            <h3>Voting in Progress!</h3>
+            <p>{{ game['reports'][-1] }}</p>
+            <p>Time Remaining: <span id="voting_timer"></span></p>
+            <p>Votes: {{ game['voted_players']|length }}/{{ alive_players_count }}</p>
+            {% if player['alive'] %}
+                {% if player_id not in game['voted_players'] %}
+                    <form method="POST" action="/vote">
+                        <label for="vote_for"><i class="fas fa-vote-yea"></i> Vote for:</label>
+                        <select name="vote_for" id="vote_for">
+                            <option value="skip">Skip Vote</option>
+                            {% for p_id in game['players'] %}
+                                {% if players[p_id]['alive'] %}
+                                    <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <button type="submit"><i class="fas fa-paper-plane"></i> Vote</button>
+                    </form>
+                {% else %}
+                    <p>You have already voted.</p>
+                {% endif %}
+            {% endif %}
+        {% endif %}
     {% endif %}
+
+    <!-- Scripts -->
     <script>
+        // Theme Toggle
+        $('#theme-toggle').click(function(){
+            $.post('/toggle_theme', function(){
+                location.reload();
+            });
+        });
+
+        // Auto-refresh
         var refreshInterval = setInterval(function(){
             location.reload();
         }, 5000);
-    </script>
-    {% if game.get('show_voting_result') %}
-    <h3>Wynik głosowania</h3>
-    <p>{{ game['voting_result'] }}</p>
-    <!-- Zatrzymujemy auto-odświeżanie -->
-    <script>
-        clearInterval(refreshInterval);
-        // Po 5 sekundach przeładuj stronę, aby kontynuować grę
-        setTimeout(function() {
-            location.reload();
-        }, 5000);
+
+        {% if game.get('show_voting_result') %}
+            // Stop auto-refresh
+            clearInterval(refreshInterval);
+            // Reload after 5 seconds
+            setTimeout(function() {
+                location.reload();
+            }, 5000);
+        {% endif %}
+
+        {% if game['voting'] %}
+            var votingEndTime = new Date("{{ game['voting_end_time'] }}Z");
+            function updateVotingTimer() {
+                var now = new Date();
+                var timeLeft = votingEndTime - now;
+                if (timeLeft > 0) {
+                    var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                    document.getElementById('voting_timer').innerHTML = seconds + "s";
+                } else {
+                    document.getElementById('voting_timer').innerHTML = "Time's up!";
+                }
+            }
+            setInterval(updateVotingTimer, 500);
+        {% endif %}
+
+        {% if game['sabotage'] %}
+            var sabotageEndTime = new Date("{{ game['sabotage_end_time'] }}Z");
+            function updateSabotageTimer() {
+                var now = new Date();
+                var timeLeft = sabotageEndTime - now;
+                if (timeLeft > 0) {
+                    var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                    document.getElementById('sabotage_timer').innerHTML = seconds + "s";
+                } else {
+                    document.getElementById('sabotage_timer').innerHTML = "Time's up!";
+                }
+            }
+            setInterval(updateSabotageTimer, 500);
+        {% endif %}
     </script>
 
-
-{% endif %}
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <ul>
-        {% for message in messages %}
-            <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-    {% endif %}
-{% endwith %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
 </body>
-<script>
-    {% if game['voting'] %}
-        var votingEndTime = new Date("{{ game['voting_end_time'] }}Z");
-        function updateVotingTimer() {
-            var now = new Date();
-            var timeLeft = votingEndTime - now;
-            if (timeLeft > 0) {
-                var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-                document.getElementById('voting_timer').innerHTML = seconds + "s";
-            } else {
-                document.getElementById('voting_timer').innerHTML = "Koniec czasu!";
-            }
-        }
-        setInterval(updateVotingTimer, 500);
-    {% endif %}
-
-    {% if game['sabotage'] %}
-        var sabotageEndTime = new Date("{{ game['sabotage_end_time'] }}Z");
-        function updateSabotageTimer() {
-            var now = new Date();
-            var timeLeft = sabotageEndTime - now;
-            if (timeLeft > 0) {
-                var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-                document.getElementById('sabotage_timer').innerHTML = seconds + "s";
-            } else {
-                document.getElementById('sabotage_timer').innerHTML = "Koniec czasu!";
-            }
-        }
-        setInterval(updateSabotageTimer, 500);
-    {% endif %}
-</script>
 </html>

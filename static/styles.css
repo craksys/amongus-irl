@@ -1,0 +1,80 @@
+/* Light Theme */
+body.light {
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+/* Dark Theme */
+body.dark {
+    background-color: #1e1e1e;
+    color: #ffffff;
+}
+
+/* General Styles */
+h1, h2, h3 {
+    text-align: center;
+}
+
+ul {
+    list-style-type: none;
+}
+
+li {
+    margin: 10px 0;
+}
+
+button, input[type="submit"] {
+    padding: 10px 20px;
+    margin: 5px;
+    cursor: pointer;
+}
+
+button#theme-toggle {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.eliminated {
+    color: red;
+}
+
+.impostors-win {
+    color: red;
+    text-align: center;
+}
+
+.crewmates-win {
+    color: green;
+    text-align: center;
+}
+
+/* Progress Bar */
+progress {
+    width: 100%;
+    height: 20px;
+}
+
+/* Form Styles */
+form {
+    display: inline-block;
+}
+
+select {
+    padding: 5px;
+    margin-right: 5px;
+}
+
+/* Icons */
+i {
+    margin-right: 5px;
+}
