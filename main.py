@@ -122,7 +122,8 @@ def sabotage_timeout(game):
 
 def assign_impostor(game):
     if game['players']:
-        impostor = game['players'][0]  # Simple selection for example
+        impostor_index = random.randint(0, len(game['players']) - 1)
+        impostor = game['players'][impostor_index]  
         game['impostor'] = impostor
         players[impostor]['role'] = 'impostor'
     else:
