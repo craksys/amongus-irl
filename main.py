@@ -389,5 +389,11 @@ def eliminate():
     else:
         return 'Cannot eliminate this player.', 403
 
+@app.route('/toggle_theme', methods=['POST'])
+def toggle_theme():
+    current_theme = session.get('theme', 'light')
+    session['theme'] = 'dark' if current_theme == 'light' else 'light'
+    return '', 204
+
 if __name__ == '__main__':
     app.run(debug=True, port=8080, host='0.0.0.0')
