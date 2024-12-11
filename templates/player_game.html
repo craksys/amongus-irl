@@ -77,23 +77,27 @@
                 {% endif %}
             </ul>
             {% if game.get('voting') %}
-                <h3>Głosowanie!</h3>
                 <h3>Głosowanie w toku!</h3>
                 <p>{{ game['reports'][-1] }}</p>
                 <p>Pozostały czas: <span id="voting_timer"></span></p>
+                <p>Głosy: {{ game['voted_players']|length }}/{{ alive_players_count }}</p>
                 {% if player['alive'] %}
-                <form method="POST" action="/vote">
-                    <label for="vote_for">Głosuj na:</label>
-                    <select name="vote_for" id="vote_for">
-                        <option value="skip">Pomiń głosowanie</option>
-                        {% for p_id in game['players'] %}
-                            {% if players[p_id]['alive'] %}
-                                <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
-                            {% endif %}
-                        {% endfor %}
-                    </select>
-                    <input type="submit" value="Głosuj">
-                </form>
+                    {% if player_id not in game['voted_players'] %}
+                        <form method="POST" action="/vote">
+                            <label for="vote_for">Głosuj na:</label>
+                            <select name="vote_for" id="vote_for">
+                                <option value="skip">Pomiń głosowanie</option>
+                                {% for p_id in game['players'] %}
+                                    {% if players[p_id]['alive'] %}
+                                        <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <input type="submit" value="Głosuj">
+                        </form>
+                    {% else %}
+                        <p>Już oddałeś swój głos.</p>
+                    {% endif %}
                 {% endif %}
             {% endif %}
     {% endif %}

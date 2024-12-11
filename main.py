@@ -1,6 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, session, request, flash, get_flashed_messages
 from threading import Timer
 from functools import wraps
+from threading import Thread
 import uuid
 import threading
 import time
@@ -140,29 +141,22 @@ def update_cooldown_timer(game):
     game['impostor_kill_timer'] = None
 
 def voting_timer(game):
-    time.sleep(30)  # Głosowanie trwa 30 sekund
-    game['voting'] = False
-    # Przetwarzanie głosów
-    votes = game['votes']
-    vote_counts = {}
-    for vote in votes.values():
-        if vote not in vote_counts:
-            vote_counts[vote] = 0
-        vote_counts[vote] += 1
-    if vote_counts:
-        max_votes = max(vote_counts.values())
-        candidates = [k for k, v in vote_counts.items() if v == max_votes]
-        if 'skip' in candidates or len(candidates) > 1:
-            # Remis lub najwięcej głosów ma "skip" - nikt nie zostaje wyeliminowany
-            pass
-        else:
-            # Eliminujemy gracza z największą liczbą głosów
-            eliminated_player_id = candidates[0]
-            if eliminated_player_id in players:
-                players[eliminated_player_id]['alive'] = False
-                game['reports'].append('Player {} was eliminated.'.format(players[eliminated_player_id]['name']))
-    # Sprawdzamy warunki końca gry
+    elapsed_time = 0
+    while game['voting'] and elapsed_time < 30:
+        time.sleep(1)
+        elapsed_time += 1
+    if game['voting']:
+        game['voting'] = False
+        game['voting_end_time'] = None
+        process_votes(game)
+        game['show_voting_result'] = True
+        time.sleep(5)
+        game['show_voting_result'] = False
     check_game_end(game)
+
+def hide_voting_result(game):
+    time.sleep(5)
+    game['show_voting_result'] = False
 
 def check_game_end(game):
     alive_players = [p for p in game['players'] if players[p]['alive']]
@@ -208,7 +202,16 @@ def player_game():
     player = players.get(player_id)
     if not game or not player:
         return 'Game not found or player not registered.', 404
-    return render_template('player_game.html', game=game, player=player, players=players, player_id=player_id, messages=get_flashed_messages())
+    alive_players_count = sum(1 for p_id in game['players'] if players[p_id]['alive'])
+    return render_template(
+        'player_game.html',
+        game=game,
+        player=player,
+        players=players,
+        player_id=player_id,
+        messages=get_flashed_messages(),
+        alive_players_count=alive_players_count
+    )
 
 @app.route('/complete_task', methods=['POST'])
 @player_required
@@ -295,9 +298,41 @@ def vote():
         if player_id not in game['voted_players']:
             game['votes'][player_id] = vote_for
             game['voted_players'].append(player_id)
+            # Check if all alive players have voted
+            alive_players = [p_id for p_id in game['players'] if players[p_id]['alive']]
+            if len(game['voted_players']) >= len(alive_players):
+                # All votes are in; end voting early
+                game['voting'] = False
+                game['voting_end_time'] = None
+                process_votes(game)
+                # Display voting result for 5 seconds
+                game['show_voting_result'] = True
+                Thread(target=hide_voting_result, args=(game,)).start()
         else:
             flash("Już oddałeś swój głos.")
     return redirect(url_for('player_game'))
+
+def process_votes(game):
+    votes = game['votes']
+    vote_counts = {}
+    for vote in votes.values():
+        if vote not in vote_counts:
+            vote_counts[vote] = 0
+        vote_counts[vote] += 1
+    if vote_counts:
+        max_votes = max(vote_counts.values())
+        candidates = [k for k, v in vote_counts.items() if v == max_votes]
+        if 'skip' in candidates or len(candidates) > 1:
+            game['voting_result'] = "Nikt nie został wyeliminowany."
+        else:
+            eliminated_player_id = candidates[0]
+            if eliminated_player_id in players:
+                players[eliminated_player_id]['alive'] = False
+                game['reports'].append('Gracz {} został wyrzucony.'.format(players[eliminated_player_id]['name']))
+                game['voting_result'] = 'Gracz {} został wyrzucony.'.format(players[eliminated_player_id]['name'])
+    else:
+        game['voting_result'] = "Nikt nie oddał głosu."
+    check_game_end(game)
 
 @app.route('/sabotage')
 @player_required
