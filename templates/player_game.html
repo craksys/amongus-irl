@@ -19,7 +19,6 @@
         {% if not player['alive'] %}
             <p class="eliminated"><strong>You have been eliminated.</strong></p>
         {% endif %}
-        <h2>Your Role: {{ player['role'].capitalize() }}</h2>
         <p>Progress: {{ game['completed_tasks'] }}/{{ game['total_tasks'] }}</p>
         <progress value="{{ game['completed_tasks'] }}" max="{{ game['total_tasks'] }}"></progress>
 
@@ -48,25 +47,55 @@
                 <li><a href="{{ url_for('report_body') }}"><i class="fas fa-bullhorn"></i> Report Body</a></li>
                 <li><a href="{{ url_for('emergency_meeting') }}"><i class="fas fa-bell"></i> Call Emergency Meeting</a></li>
                 {% if player['role'] == 'impostor' and not game.get('voting') %}
-                    <li><a href="{{ url_for('sabotage') }}"><i class="fas fa-exclamation-triangle"></i> Sabotage</a></li>
-                    <form method="POST" action="/eliminate">
-                        <label for="target_id"><i class="fas fa-user-slash"></i> Eliminate Player:</label>
-                        <select name="target_id" id="target_id">
-                        {% for p_id in game['players'] %}
-                            {% if p_id != player_id and players[p_id]['alive'] %}
-                                <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
+                    <li>
+                        <button id="toggle-impostor-actions" onclick="toggleImpostorActions()">
+                            <i class="fas fa-eye-slash"></i> Hide/Show Impostor Actions
+                        </button>
+                    </li>
+                    <div id="impostor-actions" style="display: none;">
+                        <h2>Your Role: {{ player['role'].capitalize() }}</h2>
+                        <li><a href="{{ url_for('sabotage') }}"><i class="fas fa-exclamation-triangle"></i> Sabotage</a></li>
+                        <form method="POST" action="/eliminate">
+                            <label for="target_id"><i class="fas fa-user-slash"></i> Eliminate Player:</label>
+                            <select name="target_id" id="target_id">
+                            {% for p_id in game['players'] %}
+                                {% if p_id != player_id and players[p_id]['alive'] %}
+                                    <option value="{{ p_id }}">{{ players[p_id]['name'] }}</option>
+                                {% endif %}
+                            {% endfor %}
+                            </select>
+                            {% if game['impostor_kill_timer'] %}
+                                <p>Kill cooldown active: {{ game['impostor_kill_timer'] }} seconds remaining.</p>
+                            {% else %}
+                                <button type="submit"><i class="fas fa-user-slash"></i> Eliminate</button>
                             {% endif %}
-                        {% endfor %}
-                        </select>
-                        {% if game['impostor_kill_timer'] %}
-                            <p>Kill cooldown active: {{ game['impostor_kill_timer'] }} seconds remaining.</p>
-                        {% else %}
-                            <button type="submit"><i class="fas fa-user-slash"></i> Eliminate</button>
-                        {% endif %}
-                    </form>
+                        </form>
+                    </div>
+                {% endif %}
+                {% if player['role'] == 'crewmate' and not game.get('voting') %}
+                    <li>
+                        <button id="toggle-impostor-actions" onclick="toggleImpostorActions()">
+                            <i class="fas fa-eye-slash"></i> Hide/Show Impostor Actions
+                        </button>
+                    </li>
+                    <div id="impostor-actions" style="display: none;">
+                        <h2>Your Role: {{ player['role'].capitalize() }}</h2>
+                    </div>
                 {% endif %}
             </ul>
         {% endif %}
+
+        <script>
+            // Funkcja do ukrywania i pokazywania akcji impostora
+            function toggleImpostorActions() {
+                const impostorActions = document.getElementById('impostor-actions');
+                if (impostorActions.style.display === 'none') {
+                    impostorActions.style.display = 'block'; // Pokaż element
+                } else {
+                    impostorActions.style.display = 'none'; // Ukryj element
+                }
+            }
+        </script>
 
         {% if game['game_end'] %}
             {% if game['impostors_win'] %}
