@@ -52,6 +52,9 @@ def admin_dashboard():
         long_tasks = int(request.form['long_tasks'])
         impostor_kill_cooldown = int(request.form['impostor_kill_cooldown'])
         set_emergency_cooldown = int(request.form['set_emergency_cooldown'])
+        set_sabotage_end_time = int(request.form['set_sabotage_end_time'])
+        set_voting_end_time = int(request.form['set_voting_end_time'])
+        set_sabotage_timer = int(request.form['set_sabotage_timer'])
         game_id = str(uuid.uuid4())[:5]
         games[game_id] = {
             'short_tasks': short_tasks,
@@ -64,8 +67,11 @@ def admin_dashboard():
             'sabotage': False,
             'repair_attempts': [],
             'sabotage_timer': None,
+            'set_sabotage_timer': set_sabotage_timer,
             'impostors_win': False,
+            'set_voting_end_time': set_voting_end_time,
             'voting_end_time': None,
+            'set_sabotage_end_time': set_sabotage_end_time,
             'sabotage_end_time': None,
             'game_end': False,
             'impostor_kill_cooldown': impostor_kill_cooldown,
@@ -274,7 +280,7 @@ def start_voting(game):
     game['voting'] = True
     game['votes'] = {}  # Reset votes
     game['voted_players'] = []  # Reset voted players list
-    game['voting_end_time'] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=30)).isoformat()
+    game['voting_end_time'] = datetime.datetime.utcnow() + datetime.timedelta(seconds=game['set_voting_end_time'])
     threading.Thread(target=voting_timer, args=(game,)).start()
     
 def voting_timer(game):
@@ -371,9 +377,10 @@ def sabotage():
         game['sabotage'] = True
         game['repair_attempts'] = []
         # Ustawiamy czas zakończenia sabotażu
-        game['sabotage_end_time'] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=45)).isoformat()
+        game['sabotage_end_time'] = (datetime.datetime.utcnow() + datetime.timedelta(seconds=game['set_sabotage_end_time'])).isoformat()
         # Uruchomienie timera 45 sekund
-        game['sabotage_timer'] = Timer(45.0, sabotage_timeout, [game])
+
+        game['sabotage_timer'] = Timer(game['set_sabotage_timer'], sabotage_timeout, [game])
         game['sabotage_timer'].start()
         return redirect(url_for('player_game'))
     else:
