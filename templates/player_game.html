@@ -135,6 +135,15 @@
             setTimeout(function() {
                 location.reload();
             }, 5000);
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var votingResultContainer = document.createElement('div');
+                votingResultContainer.innerHTML = `
+                    <h3>Wynik głosowania</h3>
+                    <p>{{ game['voting_result'] }}</p>
+                `;
+                document.body.appendChild(votingResultContainer);
+            });
         {% endif %}
 
         {% if game['voting'] %}
