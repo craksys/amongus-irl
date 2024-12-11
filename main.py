@@ -49,6 +49,7 @@ def admin_dashboard():
     if request.method == 'POST':
         short_tasks = int(request.form['short_tasks'])
         long_tasks = int(request.form['long_tasks'])
+        impostor_kill_cooldown = int(request.form['impostor_kill_cooldown'])
         game_id = str(uuid.uuid4())[:5]
         games[game_id] = {
             'short_tasks': short_tasks,
@@ -64,7 +65,9 @@ def admin_dashboard():
             'impostors_win': False,
             'voting_end_time': None,
             'sabotage_end_time': None,
-            'game_end': False
+            'game_end': False,
+            'impostor_kill_cooldown': impostor_kill_cooldown,
+            'impostor_kill_timer': None
         }
         session['game_id'] = game_id
         return redirect(url_for('admin_game', game_id=game_id))
@@ -86,6 +89,7 @@ def start_game(game_id):
         game['started'] = True
         assign_impostor(game)
         assign_tasks(game)
+        assign_kill_cooldown(game)
         return redirect(url_for('admin_game', game_id=game_id))
     else:
         return 'Game not found.', 404
@@ -123,6 +127,16 @@ def assign_impostor(game):
         players[impostor]['role'] = 'impostor'
     else:
         game['impostor'] = None
+
+def assign_kill_cooldown(game):
+    game['impostor_kill_cooldown'] =  game['impostor_kill_cooldown']   # Domyślny cooldown eliminacji w sekundach
+    game['impostor_kill_timer'] = None
+
+def update_cooldown_timer(game):
+    while game['impostor_kill_timer'] > 0:
+        time.sleep(1)
+        game['impostor_kill_timer'] -= 1
+    game['impostor_kill_timer'] = None
 
 def voting_timer(game):
     time.sleep(30)  # Głosowanie trwa 30 sekund
@@ -330,8 +344,11 @@ def eliminate():
     player_id = session['player_id']
     game_id = session['game_id']
     game = games[game_id]
-    if game['impostor'] == player_id and players[target_id]['alive']:
+    if game['impostor'] == player_id and players[target_id]['alive'] and game['impostor_kill_timer'] is None:
         players[target_id]['alive'] = False
+        game['impostor_kill_timer'] = game['impostor_kill_cooldown']
+        threading.Thread(target=update_cooldown_timer, args=(game,)).start()
+        check_game_end(game)
         return redirect(url_for('player_game'))
     else:
         return 'Cannot eliminate this player.', 403
