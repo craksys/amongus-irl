@@ -250,7 +250,6 @@
         {% if game['sabotage'] %}
             if (localStorage.getItem('soundPlayed_sabotage') === 'false') {
                 sabotageSound.play();
-                localStorage.setItem('soundPlayed_sabotage', 'true');
             }
         {% else %}
             if (localStorage.getItem('soundPlayed_sabotage') === 'true') {
