@@ -220,7 +220,7 @@ def complete_task():
     if task_number in player['tasks']['tasks']:
         player['tasks']['completed_tasks'].append(task_number)
         game = games[game_id]
-        game['completed_tasks'] = sum(len(player['tasks']['completed_tasks']) for player in players.values() if player['alive'] and player['role'] == 'crewmate')
+        game['completed_tasks'] = sum(len(player['tasks']['completed_tasks']) for player in players.values() if player['role'] == 'crewmate')
         check_game_end(game)
     return redirect(url_for('player_game'))
 

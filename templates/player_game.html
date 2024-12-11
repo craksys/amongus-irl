@@ -10,8 +10,8 @@
         <p>Waiting for the game to start...</p>
     {% else %}
         {% if not player['alive'] %}
-            <p>You have been eliminated.</p>
-        {% else %}
+            <p style="color:red;"><strong><big>You have been eliminated.</big></strong></p>
+        {% endif %}
             <h2>Your Role: {{ player['role'].capitalize() }}</h2>
             <p>Progress: {{ game['completed_tasks'] }}/{{ game['total_tasks'] }}</p>
             <progress value="{{ game['completed_tasks'] }}" max="{{ game['total_tasks'] }}"></progress>
@@ -33,6 +33,7 @@
                 {% endfor %}
                 </ul>
             {% endif %}
+            {% if player['alive'] %}
             <h3>Actions:</h3>
             <ul>
                 <li><a href="{{ url_for('report_body') }}">Report Body</a></li>
@@ -55,6 +56,7 @@
                         {% endif %}
                     </form>
                 {% endif %}
+            {% endif %}
                 {% if game['game_end'] %}
                 {% if game['impostors_win'] %}
                     <h2>Impostorzy wygrywają!</h2>
@@ -79,7 +81,7 @@
                 <h3>Głosowanie w toku!</h3>
                 <p>{{ game['reports'][-1] }}</p>
                 <p>Pozostały czas: <span id="voting_timer"></span></p>
-                <p>{{ game['reports'][-1] }}</p>
+                {% if player['alive'] %}
                 <form method="POST" action="/vote">
                     <label for="vote_for">Głosuj na:</label>
                     <select name="vote_for" id="vote_for">
@@ -92,8 +94,8 @@
                     </select>
                     <input type="submit" value="Głosuj">
                 </form>
+                {% endif %}
             {% endif %}
-        {% endif %}
     {% endif %}
     <script>
         var refreshInterval = setInterval(function(){
