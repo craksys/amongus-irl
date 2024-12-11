@@ -152,7 +152,7 @@
                 var now = new Date();
                 var timeLeft = votingEndTime - now;
                 if (timeLeft > 0) {
-                    var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                    var seconds = Math.floor((votingEndTime - now) / 1000);
                     document.getElementById('voting_timer').innerHTML = seconds + "s";
                 } else {
                     document.getElementById('voting_timer').innerHTML = "Time's up!";
@@ -167,7 +167,7 @@
                 var now = new Date();
                 var timeLeft = sabotageEndTime - now;
                 if (timeLeft > 0) {
-                    var seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                    var seconds = Math.floor((sabotageEndTime - now) / 1000);
                     document.getElementById('sabotage_timer').innerHTML = seconds + "s";
                 } else {
                     document.getElementById('sabotage_timer').innerHTML = "Time's up!";
