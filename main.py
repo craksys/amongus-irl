@@ -339,6 +339,9 @@ def process_votes(game):
     else:
         game['voting_result'] = "No votes were cast."
 
+    game['impostor_kill_timer'] = game['impostor_kill_cooldown']
+    threading.Thread(target=update_cooldown_timer, args=(game,)).start()
+    
     game['votes'] = {}  # Reset votes
     game['voted_players'] = []  # Reset voted players list
     check_game_end(game)
